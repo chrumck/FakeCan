@@ -2,5 +2,5 @@
     "sketch": "FakeCan.ino",
     "configuration": "cpu=16MHzatmega32U4",
     "board": "SparkFun:avr:promicro",
-    "port": "COM8"
+    "port": "COM10"
 }

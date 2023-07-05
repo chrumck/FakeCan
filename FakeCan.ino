@@ -1,10 +1,18 @@
 #include <CAN.h>
 
-#define CS_PIN 7
+#define CS_PIN 10
 #define IRQ_PIN 9
 #define MCP2515_QUARTZ_MHZ 16  // Some MCP2515 boards have 8 MHz quartz.
 #define SPI_MHZ 8
-#define CAN_BAUD_RATE 500e3 // MX5 ND uses 500k baud rate hor HS CAN
+#define CAN_BAUD_RATE 500E3 // MX5 ND uses 500k baud rate hor HS CAN
+
+#define IS_DEBUG
+
+#ifdef IS_DEBUG
+#define CAN_SEND_INTERVAL 1000
+#else
+#define CAN_SEND_INTERVAL 10
+#endif
 
 void setup() {
     Serial.begin(115200);
@@ -25,8 +33,7 @@ void setup() {
     Serial.println("CAN controller connected");
 }
 
-// Many PIDs are sent 50 times per second.
-const u16 cyclesPerSecond = 50;
+
 
 // 0x40 and 0x41 are intentionally duplicated in this array as they are sent 100 times
 // per second (double that for other PIDs) in the real car.
@@ -44,36 +51,49 @@ const u16 frameIdsToSend[] = {
     0x345, // 10 times per second
 };
 
-const u16 messagesPerCycle = sizeof(frameIdsToSend) / sizeof(frameIdsToSend[0]);
-const u16 messagesPerSecond = cyclesPerSecond * messagesPerCycle;
+const u16 framesCount = sizeof(frameIdsToSend) / sizeof(frameIdsToSend[0]);
 
 void loop() {
-    u32 firstMessageSentTime = micros();
-    u32 messagesSentCount = 0;
+    static u16 frameToSendIndex = 0;
+    static u32 lastFrameSentTime = millis();
 
-    for (int i = 0; i < messagesPerCycle; i++, messagesSentCount++) {
-        u32 nextMessageTime = firstMessageSentTime + (messagesSentCount * 1e6) / messagesPerSecond;
-        if (micros() - nextMessageTime >= 0) continue;
+    u32 currentTime = millis();
+    if (currentTime - lastFrameSentTime < CAN_SEND_INTERVAL) return;
+    lastFrameSentTime = currentTime;
 
-        u16 frameId = frameIdsToSend[i];
-        u8 payload[8] = { 0 };
-        generateFramePayload(frameId, payload);
-        if (!sendFrame(frameId, payload, 8)) Serial.println("Failed to send a message");
+    u16 frameId = frameIdsToSend[frameToSendIndex];
+    u8 payload[8] = { 0 };
+    generateFramePayload(frameId, payload);
 
-        delayMicroseconds(10);
+    u8 sendResult = sendFrame(frameId, payload, 8);
+    if (!sendResult) {
+        Serial.print("Failed to send frame:0x");
+        Serial.println(frameId, 16);
+        return;
     }
+
+#ifdef IS_DEBUG
+    if (sendResult) {
+        Serial.print("Sent frame: 0x");
+        Serial.println(frameId, 16);
+    }
+#endif
+
+    frameToSendIndex++;
 }
 
-boolean sendFrame(u16 id, u8* payload, u8 len) {
+boolean sendFrame(u16 id, u8* payload, u8 length) {
     if (!CAN.beginPacket(id)) {
-        Serial.println("beginPacket() failed.");
+        Serial.println("CAN.beginPacket() failed.");
         return false;
     }
 
-    CAN.write(payload, len);
+    if (CAN.write(payload, length) != length) {
+        Serial.println("CAN.write() failed.");
+    }
 
     if (!CAN.endPacket()) {
-        Serial.println("endPacket() failed.");
+        Serial.println("CAN.endPacket() failed.");
         return false;
     }
 
