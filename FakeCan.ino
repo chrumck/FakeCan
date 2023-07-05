@@ -1,5 +1,26 @@
 #include <CAN.h>
 
+// This is a demo program that sends messages over the CAN bus in
+// a way that resembles real messages you can receive if you listen
+// to messages on the CAN bus of a 2022 Toyota GR86.
+//
+// DO NOT USE IT IN THE CAN NETWORK OF A REAL VEHICLE as it can cause unexpected
+// side effects.
+//
+// It was tested on Arduino Uno, Arduino Micro, Adafruit Feather nRF52832 and
+// Adafruit ItsyBitsy nRF52840 Express, and should be trivial to tweak to
+// support pretty much any other board with SPI.
+//
+// Connections:
+//  MCP | BOARD
+//  INT | Not used, can connect to Pin 9
+//  SCK | SCK
+//   SI | MO
+//   SO | MI
+//   CS | Pin 7
+//  GND | GND
+//  VCC | 3.3V
+
 const int CS_PIN = 7;
 const int IRQ_PIN = 9;
 const int QUARTZ_MHZ = 16;  // Some MCP2515 boards have 8 MHz quartz.
