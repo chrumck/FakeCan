@@ -57,12 +57,7 @@ void loop() {
 
         u16 frameId = frameIdsToSend[i];
         u8 payload[8] = { 0 };
-        if (!generateFramePayload(frameId, payload)) {
-            Serial.print("Failed to generate payload for frame id:");
-            Serial.println(frameId);
-            continue;
-        };
-
+        generateFramePayload(frameId, payload);
         if (!sendFrame(frameId, payload, 8)) Serial.println("Failed to send a message");
 
         delayMicroseconds(10);
@@ -85,7 +80,7 @@ boolean sendFrame(u16 id, u8* payload, u8 len) {
     return true;
 }
 
-boolean generateFramePayload(u16 pid, u8* payload) {
+void generateFramePayload(u16 pid, u8* payload) {
     switch (pid) {
     case 0x40: {
         u8 acceleratorPedalPercent = 42;
@@ -104,7 +99,7 @@ boolean generateFramePayload(u16 pid, u8* payload) {
         u16 rpm = 3456;
         payload[2] = rpm & 0xFF;
         payload[3] = (rpm >> 8) & 0x3F;
-        return false;
+        break;
     }
 
     case 0x138: {
@@ -121,7 +116,7 @@ boolean generateFramePayload(u16 pid, u8* payload) {
         int16_t yawRateValue = (int16_t)(-yawRateDegreesPerSecond / 0.2725);
         payload[4] = yawRateValue & 0xFF;
         payload[5] = (yawRateValue >> 8) & 0xFF;
-        return false;
+        break;
     }
 
     case 0x139: {
@@ -139,7 +134,7 @@ boolean generateFramePayload(u16 pid, u8* payload) {
         float brakePressureKpa = 1024;
         payload[4] = 0x0C;
         payload[5] = (u8)(brakePressureKpa / 128);
-        return false;
+        break;
     }
 
     case 0x345: {
@@ -148,11 +143,11 @@ boolean generateFramePayload(u16 pid, u8* payload) {
 
         u8 coolantTempC = 90;
         payload[4] = coolantTempC + 40;
-        return false;
+        break;
     }
 
     default: {
-        return true;
+        break;
     }
     }
 }
