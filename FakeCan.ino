@@ -2,7 +2,7 @@
 
 #define CS_PIN 10
 #define IRQ_PIN 9
-#define MCP2515_QUARTZ_MHZ 16  // Some MCP2515 boards have 8 MHz quartz.
+#define MCP2515_QUARTZ_MHZ 8  // Some MCP2515 boards have 8 MHz quartz.
 #define SPI_MHZ 8
 #define CAN_BAUD_RATE 500E3 // MX5 ND uses 500k baud rate hor HS CAN
 
@@ -79,7 +79,7 @@ void loop() {
     }
 #endif
 
-    frameToSendIndex++;
+    frameToSendIndex = (frameToSendIndex + 1) % framesCount;
 }
 
 boolean sendFrame(u16 id, u8* payload, u8 length) {
