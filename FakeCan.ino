@@ -33,22 +33,13 @@ void setup() {
     Serial.println("CAN controller connected");
 }
 
-
-
-// 0x40 and 0x41 are intentionally duplicated in this array as they are sent 100 times
-// per second (double that for other PIDs) in the real car.
 const u16 frameIdsToSend[] = {
-    // These are sent 100 times per second:
-    0x40, 0x41,
-    // These are sent 50 times per second, part 1:
+    0x202, 0x41,
     0x118, 0x138, 0x139, 0x13B, 0x13C,
-    // These are sent 100 times per second (duplicates):
-    0x40, 0x41,
-    // These are sent 50 times per second, part 2:
+    0x202, 0x41,
     0x143, 0x146,
-    // TODO: These are actually sent less frequently than 50 times per second:
-    0x241, // 20 times per second
-    0x345, // 10 times per second
+    0x241,
+    0x345,
 };
 
 const u16 framesCount = sizeof(frameIdsToSend) / sizeof(frameIdsToSend[0]);
@@ -102,23 +93,11 @@ boolean sendFrame(u16 id, u8* payload, u8 length) {
 
 void generateFramePayload(u16 pid, u8* payload) {
     switch (pid) {
-    case 0x40: {
-        u8 acceleratorPedalPercent = 42;
-        payload[4] = acceleratorPedalPercent * 255 / 100;
-        payload[5] = payload[4];
-        payload[6] = payload[4];
-
-        // The clutch pedal has two sensors:
-        // - 0% and >0% (used here)
-        // - 100% and <100% (haven't found yet)
-        // TODO: Find where data from the second sensor is.
-        bool clutchDown = false;
-        payload[1] = (clutchDown ? 0x80 : 0x00);
-
-        // RPMs are believed to be encoded with just 14 bits.
+    case 0x202: {
         u16 rpm = 3456;
-        payload[2] = rpm & 0xFF;
-        payload[3] = (rpm >> 8) & 0x3F;
+        payload[1] = rpm & 0xFF;
+        payload[0] = (rpm >> 8) & 0xFF;
+
         break;
     }
 
