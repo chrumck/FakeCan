@@ -101,6 +101,14 @@ void generateFramePayload(u16 pid, u8* payload) {
         break;
     }
 
+    case 0x420: {
+        u8 coolantTempC = 40 + millis() / 10000 + random(0, 2);
+        u8 raw = coolantTempC - 30;
+        payload[0] = raw;
+
+        break;
+    }
+
     default: {
         break;
     }
