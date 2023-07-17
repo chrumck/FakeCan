@@ -6,12 +6,12 @@
 #define SPI_MHZ 8
 #define CAN_BAUD_RATE 500E3 // MX5 ND uses 500k baud rate hor HS CAN
 
-#define IS_DEBUG
+// #define IS_DEBUG
 
 #ifdef IS_DEBUG
 #define CAN_SEND_INTERVAL 100
 #else
-#define CAN_SEND_INTERVAL 10
+#define CAN_SEND_INTERVAL 2
 #endif
 
 void setup() {
@@ -95,16 +95,20 @@ void generateFramePayload(u16 pid, u8* payload) {
     case 0x202: {
         u16 rpm = (880 + random(0, 100)) + ((millis() % 6000) < 3000 ? 2200 : 0);
         u16 raw = rpm * 4;
-        payload[1] = raw & 0xFF;
         payload[0] = (raw >> 8) & 0xFF;
+        payload[1] = raw & 0xFF;
 
         break;
     }
 
     case 0x420: {
         u8 coolantTempC = 40 + millis() / 10000 + random(0, 2);
-        u8 raw = coolantTempC - 30;
-        payload[0] = raw;
+        u8 rawCoolantTemp = coolantTempC + 30;
+        payload[0] = rawCoolantTemp;
+
+        u8 airTempC = 22 + random(0, 2);
+        u8 rawAirTemp = airTempC + 30;
+        payload[7] = rawAirTemp;
 
         break;
     }
