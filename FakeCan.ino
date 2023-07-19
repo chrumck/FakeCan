@@ -107,16 +107,14 @@ void receiveSerial() {
 
     if (strcmp(serialBuf, "faster") == 0) {
         sendInterval = sendInterval / 2;
-        Serial.print("going faster, interval in ms:");
+        Serial.print("going faster, new interval:");
         Serial.println(sendInterval);
-        isStopped = 1;
     };
 
     if (strcmp(serialBuf, "slower") == 0) {
         sendInterval = sendInterval * 2;
-        Serial.print("going slower, interval in ms:");
+        Serial.print("going slower, new interval:");
         Serial.println(sendInterval);
-        isStopped = 1;
     };
 }
 
