@@ -5,6 +5,7 @@
 #define MCP2515_QUARTZ_MHZ 8  // Some MCP2515 boards have 8 MHz quartz.
 #define SPI_MHZ 8
 #define CAN_BAUD_RATE 500E3 // MX5 ND uses 500k baud rate hor HS CAN
+#define SERIAL_BUFFER_SIZE 32
 
 // #define IS_DEBUG
 
@@ -13,6 +14,9 @@
 #else
 #define CAN_SEND_INTERVAL 2
 #endif
+
+u8 isStopped = 0;
+u16 sendInterval = CAN_SEND_INTERVAL;
 
 void setup() {
     Serial.begin(115200);
@@ -45,10 +49,13 @@ void loop() {
     static u16 frameToSendIndex = 0;
     static u32 lastFrameSentTime = millis();
 
-    if (!Serial) return;
+    receiveSerial();
+
+    if (!Serial || isStopped) return;
+
 
     u32 currentTime = millis();
-    if (currentTime - lastFrameSentTime < CAN_SEND_INTERVAL) return;
+    if (currentTime - lastFrameSentTime < sendInterval) return;
     lastFrameSentTime = currentTime;
 
     u16 frameId = frameIdsToSend[frameToSendIndex];
@@ -72,6 +79,47 @@ void loop() {
     frameToSendIndex = (frameToSendIndex + 1) % framesCount;
 }
 
+void receiveSerial() {
+    static const char endMarker = '\n';
+    static char serialBuf[SERIAL_BUFFER_SIZE];
+    static byte ndx;
+    static char rc;
+
+    if (Serial.available() == 0) return;
+
+    ndx = 0;
+    memset(&serialBuf, 0, SERIAL_BUFFER_SIZE);
+    while (Serial.available() > 0 && ndx < SERIAL_BUFFER_SIZE) {
+        rc = Serial.read();
+        if (rc == endMarker) break;
+        serialBuf[ndx++] = rc;
+    }
+
+    if (strcmp(serialBuf, "start") == 0) {
+        Serial.println("starting...");
+        isStopped = 0;
+    }
+
+    if (strcmp(serialBuf, "stop") == 0) {
+        Serial.println("stopping...");
+        isStopped = 1;
+    };
+
+    if (strcmp(serialBuf, "faster") == 0) {
+        sendInterval = sendInterval / 2;
+        Serial.print("going faster, interval in ms:");
+        Serial.println(sendInterval);
+        isStopped = 1;
+    };
+
+    if (strcmp(serialBuf, "slower") == 0) {
+        sendInterval = sendInterval * 2;
+        Serial.print("going slower, interval in ms:");
+        Serial.println(sendInterval);
+        isStopped = 1;
+    };
+}
+
 boolean sendFrame(u16 id, u8* payload, u8 length) {
     if (!CAN.beginPacket(id)) {
         Serial.println("CAN.beginPacket() failed.");
@@ -89,6 +137,7 @@ boolean sendFrame(u16 id, u8* payload, u8 length) {
 
     return true;
 }
+
 
 void generateFramePayload(u16 pid, u8* payload) {
     switch (pid) {
